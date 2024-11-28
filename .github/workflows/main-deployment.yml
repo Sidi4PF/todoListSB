@@ -1,43 +1,67 @@
-name: CI/CD - Main Deployment
+name: Main Workflow
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  build-test-and-deploy:
+  build-test-deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "16"
 
-      - name: Install Dependencies (Frontend)
+      - name: Install frontend dependencies
         working-directory: ./frontend
         run: npm install
 
-      - name: Install Dependencies (Backend)
+      - name: Install backend dependencies
         working-directory: ./backend
         run: npm install
 
-      - name: Run Unit Tests (Frontend)
+      - name: Run frontend unit tests
         working-directory: ./frontend
         run: npm test
 
-      - name: Run Unit Tests (Backend)
+      - name: Run backend unit tests
         working-directory: ./backend
         run: npm test
 
-      - name: Build Docker Images
+      - name: Build Docker containers
         run: docker-compose build
 
-      - name: Log in to DockerHub
-        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      - name: Start Docker containers
+        run: docker-compose up -d
 
-      - name: Push Docker Images
-        run: docker-compose push
+      - name: Install ChromeDriver and Selenium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-xcb1 libnss3 libxss1 libappindicator3-1 fonts-liberation libasound2 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libxcomposite1 libxrandr2 xdg-utils
+          npm install selenium-webdriver chromedriver mocha --save-dev
+
+      - name: Run E2E Tests
+        run: |
+          npm test -- ./e2e-tests/test.js
+        env:
+          NODE_ENV: test
+
+      - name: Stop Docker containers
+        if: always()
+        run: docker-compose down
+
+      - name: Push Docker images
+        if: success()
+        run: |
+          echo "${{ secrets.PERSONAL_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker-compose push

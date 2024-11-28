@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   mongodb:
@@ -15,6 +15,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: sidi4pf/reversetodosidi-backend:latest
     container_name: backend
     restart: always
     ports:
@@ -32,6 +33,7 @@ services:
       dockerfile: Dockerfile
       args:
         REACT_APP_API_URL: http://localhost:3001
+    image: sidi4pf/reversetodosidi-frontend:latestame
     container_name: frontend
     restart: always
     ports:

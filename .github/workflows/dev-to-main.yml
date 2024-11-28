@@ -1,0 +1,46 @@
+name: CI/CD - Dev to Main
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
+      - name: Install Dependencies (Frontend)
+        working-directory: ./frontend
+        run: npm install
+
+      - name: Install Dependencies (Backend)
+        working-directory: ./backend
+        run: npm install
+
+      - name: Run Unit Tests (Frontend)
+        working-directory: ./frontend
+        run: npm test
+
+      - name: Run Unit Tests (Backend)
+        working-directory: ./backend
+        run: npm test
+
+  merge-to-main:
+    needs: build-and-test
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge Dev to Main
+        uses: devmasx/merge-branch@v1.4.0
+        with:
+          from_branch: dev
+          target_branch: main
+          github_token: ${{ secrets.GITHUB_TOKEN }}
